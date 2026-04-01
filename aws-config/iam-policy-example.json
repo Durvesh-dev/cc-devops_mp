@@ -1,0 +1,53 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3PutLogs",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/logs/*"
+    },
+    {
+      "Sid": "S3ReadModel",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "arn:aws:s3:::YOUR_MODEL_BUCKET/YOUR_MODEL_KEY"
+    },
+    {
+      "Sid": "SnsPublishAlerts",
+      "Effect": "Allow",
+      "Action": ["sns:Publish"],
+      "Resource": "arn:aws:sns:YOUR_REGION:YOUR_ACCOUNT_ID:YOUR_TOPIC_NAME"
+    },
+    {
+      "Sid": "CloudWatchLogWrite",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:DescribeLogStreams",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:YOUR_REGION:YOUR_ACCOUNT_ID:log-group:cc-mp-devops-logs",
+        "arn:aws:logs:YOUR_REGION:YOUR_ACCOUNT_ID:log-group:cc-mp-devops-logs:log-stream:backend-stream"
+      ]
+    },
+    {
+      "Sid": "DynamoDbDevopsTables",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:PutItem",
+        "dynamodb:Scan"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:YOUR_REGION:YOUR_ACCOUNT_ID:table/LogsTable",
+        "arn:aws:dynamodb:YOUR_REGION:YOUR_ACCOUNT_ID:table/AnomaliesTable",
+        "arn:aws:dynamodb:YOUR_REGION:YOUR_ACCOUNT_ID:table/AlertsTable",
+        "arn:aws:dynamodb:YOUR_REGION:YOUR_ACCOUNT_ID:table/AutoHealingTable"
+      ]
+    }
+  ]
+}

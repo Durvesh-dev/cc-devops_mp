@@ -1,0 +1,11 @@
+log
+INFO service started in 120ms
+INFO healthcheck passed in 45ms
+INFO user login success in 230ms
+WARN retrying db connection in 500ms
+INFO cache warm completed in 90ms
+INFO api response 200 in 150ms
+INFO scheduled job completed in 310ms
+INFO websocket connected in 40ms
+WARN external api delay 800ms
+INFO metrics flush complete in 70ms

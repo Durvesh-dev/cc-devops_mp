@@ -1,0 +1,25 @@
+{
+  "name": "autonomous-ai-devops-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Self-Healing Cloud System",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "train": "python ../ml-model/train.py"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1018.0",
+    "@aws-sdk/client-s3": "^3.836.0",
+    "@aws-sdk/client-sns": "^3.836.0",
+    "@aws-sdk/lib-dynamodb": "^3.1018.0",
+    "aws-sdk": "^2.1693.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

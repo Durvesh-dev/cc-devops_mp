@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autonomous AI DevOps Engineer - Viva Notes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+      margin: 24px auto;
+      max-width: 900px;
+      padding: 0 16px;
+      color: #111;
+      background: #fff;
+    }
+    h1, h2, h3 { color: #0b3a53; }
+    h1 { margin-bottom: 8px; }
+    h2 { margin-top: 24px; }
+    ul, ol { margin-top: 6px; }
+    .muted { color: #444; }
+    @media print {
+      body { max-width: none; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Autonomous AI DevOps Engineer - Viva Preparation Notes</h1>
+  <p class="muted">Use this as your speaking sheet for team viva.</p>
+
+  <h2>1) Project in One Line</h2>
+  <p>This project is a self-healing AI-driven DevOps platform that monitors logs in real time, detects anomalies using ML + rules, triggers alerts, performs automated recovery actions, stores events persistently, and visualizes everything live on a dashboard.</p>
+
+  <h2>2) Problem Statement</h2>
+  <p>Traditional monitoring is reactive and manual. Teams often detect production issues late and fix them manually.</p>
+  <p>Our solution makes DevOps proactive by:</p>
+  <ul>
+    <li>Continuously ingesting logs</li>
+    <li>Detecting anomalies automatically</li>
+    <li>Triggering alerts automatically</li>
+    <li>Executing auto-healing actions</li>
+    <li>Streaming everything to a live command center UI</li>
+  </ul>
+
+  <h2>3) Tech Stack</h2>
+  <ul>
+    <li>Frontend: Next.js + TailwindCSS</li>
+    <li>Backend: Node.js + Express</li>
+    <li>ML: Python predictor script</li>
+    <li>AWS: DynamoDB, SNS, CloudWatch Logs, S3 integration support</li>
+    <li>Real-time transport: SSE (Server-Sent Events)</li>
+  </ul>
+
+  <h2>4) High-Level Architecture</h2>
+  <h3>Frontend Layer</h3>
+  <ul>
+    <li>Dashboard, Logs, Alerts, Insights pages</li>
+    <li>Live updates from backend events endpoint</li>
+    <li>Premium activity timeline with filters and severity cues</li>
+  </ul>
+  <h3>Backend Layer</h3>
+  <ul>
+    <li>API routes for status, stats, logs, analyze, SSE events</li>
+    <li>Log watcher + autonomous log generator</li>
+    <li>Decision engine + ML service integration</li>
+    <li>Healing and alert workflow service</li>
+  </ul>
+  <h3>Data + Cloud Layer</h3>
+  <ul>
+    <li>Persistent event storage in DynamoDB</li>
+    <li>SNS alert publishing for ERROR and CRITICAL incidents</li>
+    <li>CloudWatch stream push support for generated logs</li>
+  </ul>
+
+  <h2>5) End-to-End Flow (Most Important)</h2>
+  <ol>
+    <li>New log arrives (real or generated).</li>
+    <li>Log watcher reads only new lines safely (offset + partial buffer handling).</li>
+    <li>Backend predicts anomaly using Python ML model.</li>
+    <li>Decision engine fuses ML signal + rule logic for final decision.</li>
+    <li>Log and incident records are persisted.</li>
+    <li>If anomaly exists, alert + auto-healing action are generated and stored.</li>
+    <li>Backend emits SSE events: log, prediction, alert, healing, status.</li>
+    <li>Frontend updates cards, charts, and timeline instantly.</li>
+  </ol>
+
+  <h2>6) Why This is Autonomous</h2>
+  <ul>
+    <li>No manual trigger for monitoring</li>
+    <li>No manual classification for anomaly detection</li>
+    <li>Automatic alerting and escalation rules</li>
+    <li>Automatic service-level remediation actions</li>
+    <li>Automatic dynamic health calculation</li>
+  </ul>
+
+  <h2>7) Key Features Implemented</h2>
+  <ul>
+    <li>Real-time log ingestion and pipeline processing</li>
+    <li>ML + rule-fallback anomaly fusion</li>
+    <li>DynamoDB persistence for logs/anomalies/alerts/healing events</li>
+    <li>Persistent dashboard stats endpoint</li>
+    <li>Dynamic health logic from recent data</li>
+    <li>Service-specific auto-healing mapping</li>
+    <li>SNS trigger refinement for ERROR and CRITICAL only</li>
+    <li>Enhanced CloudWatch reliability logic</li>
+    <li>Modern dashboard redesign with grouped, filterable activity timeline</li>
+  </ul>
+
+  <h2>8) Team Presentation Split (3 Members)</h2>
+  <p>Member 1: Architecture + Backend pipeline</p>
+  <p>Member 2: ML + Decision + AWS integration</p>
+  <p>Member 3: Frontend UX + Operations visibility</p>
+
+  <h2>9) 60-Second Demo Script</h2>
+  <p>We start the backend watcher and autonomous log generator. New logs are ingested in real time and passed to the ML predictor. The decision engine combines ML and rule-based intelligence to classify anomalies. For incident logs, alerts are generated and recovery actions are created automatically. All records are persisted in DynamoDB. The frontend receives real-time SSE events and updates operational metrics and pipeline activity instantly. This demonstrates a closed-loop autonomous DevOps workflow: observe, decide, act, and visualize.</p>
+
+  <h2>10) Common Viva Questions</h2>
+  <p><strong>Why ML + rules?</strong> ML handles unseen patterns; rules provide deterministic safeguards and explainability.</p>
+  <p><strong>Why SSE?</strong> Dashboard needs one-way real-time streaming from server to client; SSE is simple and effective.</p>
+  <p><strong>Why DynamoDB?</strong> Low-latency, scalable, managed storage for operational event records.</p>
+  <p><strong>How is cloud cost controlled?</strong> Local-first runtime, severity-gated alerts, short retention, and budget alarms.</p>
+
+  <h2>11) Closing Line</h2>
+  <p>This project demonstrates practical AIOps: real-time observability, intelligent incident detection, autonomous remediation workflows, and operator-friendly visibility in a single integrated platform.</p>
+</body>
+</html>
