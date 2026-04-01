@@ -33,12 +33,48 @@ function buildClientConfig() {
   return { region };
 }
 
-const ddbClient = new DynamoDBClient(buildClientConfig());
-const docClient = DynamoDBDocumentClient.from(ddbClient, {
-  marshallOptions: {
-    removeUndefinedValues: true,
-  },
-});
+function envTruthy(value) {
+  if (value == null) return false;
+  return ["1", "true", "yes", "y", "on"].includes(String(value).trim().toLowerCase());
+}
+
+function shouldUseMemoryStore() {
+  return envTruthy(process.env.USE_IN_MEMORY_STORE) || envTruthy(process.env.LOCAL_MODE);
+}
+
+function shouldFallbackToMemoryOnError() {
+  if (process.env.DYNAMO_FALLBACK_TO_MEMORY != null) {
+    return envTruthy(process.env.DYNAMO_FALLBACK_TO_MEMORY);
+  }
+  return String(process.env.NODE_ENV || "development").toLowerCase() !== "production";
+}
+
+let mode = shouldUseMemoryStore() ? "memory" : "dynamo";
+let dynamoClients = null;
+let memoryTables = null;
+
+function getDynamoClients() {
+  if (dynamoClients) return dynamoClients;
+  const ddbClient = new DynamoDBClient(buildClientConfig());
+  const docClient = DynamoDBDocumentClient.from(ddbClient, {
+    marshallOptions: {
+      removeUndefinedValues: true,
+    },
+  });
+  dynamoClients = { ddbClient, docClient };
+  return dynamoClients;
+}
+
+function getMemoryTables() {
+  if (memoryTables) return memoryTables;
+  memoryTables = {
+    [TABLES.logs]: new Map(),
+    [TABLES.anomalies]: new Map(),
+    [TABLES.alerts]: new Map(),
+    [TABLES.autoHealing]: new Map(),
+  };
+  return memoryTables;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -68,6 +104,7 @@ function buildCreateTableCommand(tableName) {
 }
 
 async function waitForTableActive(tableName, attempts = 20) {
+  const { ddbClient } = getDynamoClients();
   for (let i = 0; i < attempts; i += 1) {
     try {
       const described = await ddbClient.send(new DescribeTableCommand({ TableName: tableName }));
@@ -85,6 +122,7 @@ async function waitForTableActive(tableName, attempts = 20) {
 }
 
 async function ensureTable(tableName) {
+  const { ddbClient } = getDynamoClients();
   try {
     const described = await ddbClient.send(new DescribeTableCommand({ TableName: tableName }));
     if (described?.Table?.TableStatus !== "ACTIVE") {
@@ -102,14 +140,38 @@ async function ensureTable(tableName) {
 }
 
 async function ensureDynamoTables() {
-  const tableNames = Object.values(TABLES);
-  for (const tableName of tableNames) {
-    await ensureTable(tableName);
+  if (mode === "memory") {
+    getMemoryTables();
+    console.log("[Store] Using in-memory tables (DynamoDB disabled)");
+    return;
   }
-  console.log(`[DynamoDB] Tables ready: ${tableNames.join(", ")}`);
+
+  const tableNames = Object.values(TABLES);
+  try {
+    for (const tableName of tableNames) {
+      await ensureTable(tableName);
+    }
+    console.log(`[DynamoDB] Tables ready: ${tableNames.join(", ")}`);
+  } catch (error) {
+    if (!shouldFallbackToMemoryOnError()) {
+      throw error;
+    }
+
+    console.warn(`[DynamoDB] Unavailable (${error.message}); falling back to in-memory store`);
+    mode = "memory";
+    getMemoryTables();
+  }
 }
 
 async function putItem(tableName, item) {
+  if (mode === "memory") {
+    const tables = getMemoryTables();
+    const table = tables[tableName] || (tables[tableName] = new Map());
+    table.set(item.id, { ...item });
+    return;
+  }
+
+  const { docClient } = getDynamoClients();
   await docClient.send(new PutCommand({ TableName: tableName, Item: item }));
 }
 
@@ -176,6 +238,16 @@ async function appendAutoHealing(autoHealingRecord) {
 }
 
 async function readRecentFromTable(tableName, limit = 50) {
+  if (mode === "memory") {
+    const tables = getMemoryTables();
+    const table = tables[tableName];
+    const items = table ? Array.from(table.values()) : [];
+    return items
+      .sort((a, b) => getTimeValue(b) - getTimeValue(a))
+      .slice(0, limit);
+  }
+
+  const { docClient } = getDynamoClients();
   const response = await docClient.send(new ScanCommand({ TableName: tableName }));
   const items = response.Items || [];
 
@@ -215,6 +287,13 @@ async function readRecentAutoHealing(limit = 20) {
 }
 
 async function countTable(tableName) {
+  if (mode === "memory") {
+    const tables = getMemoryTables();
+    const table = tables[tableName];
+    return table ? table.size : 0;
+  }
+
+  const { docClient } = getDynamoClients();
   const response = await docClient.send(new ScanCommand({ TableName: tableName, Select: "COUNT" }));
   return response.Count || 0;
 }
