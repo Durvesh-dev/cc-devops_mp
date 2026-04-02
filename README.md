@@ -75,6 +75,44 @@ Open `http://localhost:3000`. The dashboard automatically connects via SSE and d
 - **Alerts** — active and recent anomaly alerts
 - **ML Insights** — pipeline status, last prediction, auto-healing events
 
+## 9) Docker (Run UI + API)
+
+This repo includes Dockerfiles for both services and a `docker-compose.yml` at the project root.
+
+### Run
+
+```bash
+docker compose up --build
+```
+
+- Frontend UI: `http://localhost:3000`
+- Backend API: `http://localhost:5000/api`
+
+By default the containerized backend runs with an in-memory store (no DynamoDB/AWS required) so you can demo locally.
+
+## 10) Jenkins (CI)
+
+A basic pipeline is provided in `Jenkinsfile`:
+- Installs backend deps
+- Installs frontend deps + runs `npm run lint`
+- Builds Docker images for backend + frontend
+
+Requirement: Jenkins agent must have Docker available.
+
+## 11) Terraform (AWS Infra)
+
+Terraform scaffolding lives in `infra/terraform/` and can provision:
+- DynamoDB tables
+- SNS topic
+- S3 bucket
+
+```bash
+cd infra/terraform
+terraform init
+terraform apply
+```
+
+
 ## 6) Cloud + DevOps + MLOps Mapping
 
 - Cloud Computing: S3 object storage, SNS alerting, optional Lambda/API Gateway simulation.
