@@ -248,8 +248,23 @@ async function readRecentFromTable(tableName, limit = 50) {
   }
 
   const { docClient } = getDynamoClients();
-  const response = await docClient.send(new ScanCommand({ TableName: tableName }));
-  const items = response.Items || [];
+  const items = [];
+  let lastEvaluatedKey;
+
+  do {
+    const response = await docClient.send(
+      new ScanCommand({
+        TableName: tableName,
+        ExclusiveStartKey: lastEvaluatedKey,
+      }),
+    );
+
+    if (response.Items?.length) {
+      items.push(...response.Items);
+    }
+
+    lastEvaluatedKey = response.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
 
   return items
     .sort((a, b) => getTimeValue(b) - getTimeValue(a))
@@ -294,8 +309,23 @@ async function countTable(tableName) {
   }
 
   const { docClient } = getDynamoClients();
-  const response = await docClient.send(new ScanCommand({ TableName: tableName, Select: "COUNT" }));
-  return response.Count || 0;
+  let total = 0;
+  let lastEvaluatedKey;
+
+  do {
+    const response = await docClient.send(
+      new ScanCommand({
+        TableName: tableName,
+        Select: "COUNT",
+        ExclusiveStartKey: lastEvaluatedKey,
+      }),
+    );
+
+    total += response.Count || 0;
+    lastEvaluatedKey = response.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+
+  return total;
 }
 
 async function countLogs() {
