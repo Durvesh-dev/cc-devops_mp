@@ -69,13 +69,21 @@ function pickLevel() {
   return "CRITICAL";
 }
 
+function resolveLatency(level) {
+  if (level === "CRITICAL") return randomInt(1200, 4500);
+  if (level === "ERROR") return randomInt(800, 2200);
+  if (level === "WARN") return randomInt(400, 950);
+  return randomInt(40, 260); // INFO
+}
+
 function buildLogLine() {
   const selectedService = pick(SERVICE_CATALOG);
   const level = pickLevel();
   const messagePool = selectedService.messages[level] || selectedService.messages.INFO;
   const message = pick(messagePool);
+  const latency = resolveLatency(level);
 
-  return `${new Date().toISOString()} ${level} [${selectedService.serviceName}] ${message}`;
+  return `${new Date().toISOString()} ${level} [${selectedService.serviceName}] ${message} latency=${latency}ms`;
 }
 
 async function ensureLogFile(logFilePath) {
@@ -96,9 +104,7 @@ async function appendGeneratedLog(logFilePath) {
 
   // 2. Send to CloudWatch (NEW)
   try {
-    console.log(`[CloudWatch] Preparing to send generated log: ${line}`);
     await sendLog(line);
-    console.log("[CloudWatch] Generated log sent successfully");
   } catch (error) {
     console.error(`[CloudWatch] Failed to send log: ${error.message}`);
   }

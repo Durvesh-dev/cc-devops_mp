@@ -85,10 +85,12 @@ export function useDevopsData() {
         const nowIso = new Date().toISOString();
         const seedAlerts = (statusData?.alerts || []).slice(0, 20).map((alert, index) => ({
           id: alert.id || `status-alert-${index}`,
+          incidentId: alert.incidentId || null,
           kind: "alerts",
           title: "Issue found",
           message: alert.message || "An issue was detected and alert workflow was triggered",
           service: alert.service || "core-service",
+          issueType: alert.issueType || "general-event",
           severity: alert.severity || "warning",
           source: alert?.sns?.skipped ? "local-fallback" : "snapshot",
           time: alert.time || nowIso,
@@ -96,11 +98,13 @@ export function useDevopsData() {
 
         const seedHealing = (statusData?.autoHealingActions || []).slice(0, 20).map((item, index) => ({
           id: item.id || `status-heal-${index}`,
+          incidentId: item.incidentId || null,
           kind: "healing",
           title: "Issue healed",
-          message: item.message || item.action || "Recovery workflow applied",
+          message: `${item.issueType || "general-event"} resolved: ${item.message || item.action || "Recovery workflow applied"}`,
           service: item.service || "core-service",
-          severity: item.severity || "info",
+          issueType: item.issueType || "general-event",
+          severity: "resolved",
           source: "self-heal",
           time: item.time || nowIso,
         }));
@@ -196,10 +200,12 @@ export function useDevopsData() {
                 if (prev.length) return prev;
                 return parsed.data.recentAlerts.slice(0, 20).map((alert, index) => ({
                   id: alert.id || `snapshot-alert-${index}`,
+                  incidentId: alert.incidentId || null,
                   kind: "alerts",
                   title: "Issue found",
                   message: alert.message || "An issue was detected and alert workflow was triggered",
                   service: alert.service || "core-service",
+                  issueType: alert.issueType || "general-event",
                   severity: alert.severity || "warning",
                   source: "snapshot",
                   time: alert.time || parsed.timestamp,
@@ -246,7 +252,9 @@ export function useDevopsData() {
               };
             });
             pushPipelineEvent({
-              id: `prediction-${parsed.timestamp}-${decision?.service || "service"}`,
+              id: parsed.data?.logId
+                ? `prediction-${parsed.data.logId}`
+                : `prediction-${parsed.timestamp}-${decision?.service || "service"}-${Math.random().toString(36).slice(2, 8)}`,
               kind: parsed.data.is_anomaly ? "alerts" : "logs",
               title: parsed.data.is_anomaly ? "Issue found" : "Analysis complete",
               message: parsed.data.is_anomaly
@@ -268,10 +276,12 @@ export function useDevopsData() {
             });
             pushPipelineEvent({
               id: parsed.data?.id || `alert-${parsed.timestamp}`,
+              incidentId: parsed.data?.incidentId || null,
               kind: "alerts",
               title: "Healing initiated",
               message: parsed.data?.message || "Issue alert sent and remediation flow initiated",
               service: parsed.data?.service || "core-service",
+              issueType: parsed.data?.issueType || "general-event",
               severity: parsed.data?.severity || "warning",
               source: parsed.data?.sns?.skipped ? "local-fallback" : "sns",
               time: parsed.data?.time || parsed.timestamp,
@@ -281,11 +291,13 @@ export function useDevopsData() {
           } else if (parsed.type === "healing") {
             pushPipelineEvent({
               id: parsed.data?.id || `heal-${parsed.timestamp}`,
+              incidentId: parsed.data?.incidentId || null,
               kind: "healing",
               title: "Issue healed",
-              message: parsed.data?.message || parsed.data?.action || "Recovery workflow applied",
+              message: `${parsed.data?.issueType || "general-event"} resolved: ${parsed.data?.message || parsed.data?.action || "Recovery workflow applied"}`,
               service: parsed.data?.service || "core-service",
-              severity: parsed.data?.severity || "info",
+              issueType: parsed.data?.issueType || "general-event",
+              severity: "resolved",
               source: "self-heal",
               time: parsed.data?.time || parsed.timestamp,
             });

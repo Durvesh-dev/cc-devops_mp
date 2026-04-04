@@ -12,12 +12,15 @@ const FILTERS = [
 
 function normalizeKind(eventKind) {
   const kind = String(eventKind || "").toLowerCase();
-  if (kind === "alert" || kind === "anomaly") return "alerts";
-  if (kind === "heal" || kind === "healing") return "healing";
+  if (kind === "alert" || kind === "alerts" || kind === "anomaly") return "alerts";
+  if (kind === "heal" || kind === "healing" || kind === "resolved") return "healing";
+  if (kind === "log" || kind === "logs") return "logs";
   return "logs";
 }
 
-function normalizeSeverity(severityValue) {
+function normalizeSeverity(severityValue, kind) {
+  if (kind === "healing") return "resolved";
+
   const severity = String(severityValue || "info").toLowerCase();
   if (severity.includes("critical") || severity.includes("high")) return "critical";
   if (severity.includes("error") || severity.includes("medium") || severity.includes("warn")) return "warning";
@@ -50,16 +53,24 @@ export default function ActivityTimeline({ events, sseConnected }) {
   const [filter, setFilter] = useState("all");
 
   const normalizedEvents = useMemo(() => {
+    const seenIds = new Map();
+
     return (events || []).map((event, index) => {
       const kind = normalizeKind(event.kind || event.type);
-      const severity = normalizeSeverity(event.severity);
+      const severity = normalizeSeverity(event.severity, kind);
+      const baseId = event.id || `${event.time || "evt"}-${kind}-${event.service || "core-service"}`;
+      const occurrence = seenIds.get(baseId) || 0;
+      seenIds.set(baseId, occurrence + 1);
+
       return {
-        id: event.id || `${event.time || "evt"}-${index}`,
+        id: occurrence === 0 ? baseId : `${baseId}-${occurrence}`,
+        incidentId: event.incidentId || null,
         kind,
         severity,
         title: event.title || "Pipeline update",
         message: event.message || "No details available",
         service: event.service || "core-service",
+        issueType: event.issueType || "general-event",
         source: event.source || "watcher",
         time: event.time || new Date().toISOString(),
       };
@@ -158,24 +169,24 @@ export default function ActivityTimeline({ events, sseConnected }) {
                 <article
                   key={event.id}
                   className={`timeline-row rounded-xl border p-3 ${
-                    event.severity === "critical"
+                    event.kind === "healing" || event.severity === "resolved"
+                      ? "border-emerald-500/25 bg-emerald-500/10"
+                      : event.severity === "critical"
                       ? "severity-critical border-rose-500/30 bg-rose-500/10"
                       : event.severity === "warning"
                       ? "severity-warning border-amber-400/30 bg-amber-500/10"
-                      : event.kind === "healing"
-                      ? "border-emerald-500/25 bg-emerald-500/10"
                       : "border-cyan-400/25 bg-cyan-500/10"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <span
                       className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
-                        event.severity === "critical"
+                        event.kind === "healing" || event.severity === "resolved"
+                          ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-100"
+                          : event.severity === "critical"
                           ? "border-rose-400/40 bg-rose-500/20 text-rose-200"
                           : event.severity === "warning"
                           ? "border-amber-300/40 bg-amber-500/20 text-amber-100"
-                          : event.kind === "healing"
-                          ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-100"
                           : "border-cyan-300/40 bg-cyan-500/20 text-cyan-100"
                       }`}
                     >
@@ -196,8 +207,18 @@ export default function ActivityTimeline({ events, sseConnected }) {
                         <span className="rounded-md border border-white/10 bg-black/25 px-2 py-0.5 font-mono text-[10px] text-slate-300">
                           {event.service}
                         </span>
+                        <span className="rounded-md border border-white/10 bg-black/25 px-2 py-0.5 font-mono text-[10px] text-slate-300">
+                          {event.issueType}
+                        </span>
+                        {event.incidentId && (
+                          <span className="rounded-md border border-emerald-300/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] text-emerald-100">
+                            incident:{String(event.incidentId).slice(-6)}
+                          </span>
+                        )}
                         <span className={`rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase ${
-                          event.severity === "critical"
+                          event.kind === "healing" || event.severity === "resolved"
+                            ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-100"
+                            : event.severity === "critical"
                             ? "border-rose-400/40 bg-rose-500/20 text-rose-100"
                             : event.severity === "warning"
                             ? "border-amber-400/40 bg-amber-500/20 text-amber-100"

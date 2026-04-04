@@ -6,8 +6,14 @@ const { startLogGenerator, stopLogGenerator } = require("./utils/logGenerator");
 
 const PORT = process.env.PORT || 5000;
 
+function isTrue(value) {
+  return String(value || "").trim().toLowerCase() === "true";
+}
+
 async function startServer() {
   await ensureDynamoTables();
+
+  const requireS3Model = isTrue(process.env.REQUIRE_S3_MODEL);
 
   // Sync model from S3 if configured
   const modelSync = await syncModelFromS3();
@@ -17,6 +23,12 @@ async function startServer() {
     console.log(`Model sync skipped: ${modelSync.reason}`);
   } else if (modelSync?.error) {
     console.warn(`Model sync failed, fallback to local model: ${modelSync.error}`);
+  }
+
+  if (requireS3Model && !modelSync?.success) {
+    throw new Error(
+      "Startup blocked: REQUIRE_S3_MODEL=true but model sync from S3 was not successful",
+    );
   }
 
   app.listen(PORT, () => {

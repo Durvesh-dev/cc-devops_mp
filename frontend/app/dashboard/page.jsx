@@ -9,14 +9,15 @@ import StatusPill from "../../components/StatusPill";
 import { useDevopsData } from "../../lib/useDevopsData";
 
 export default function DashboardRoute() {
-  const { metrics, logs, status, message, pipelineEvents, sseConnected, isLoading } = useDevopsData();
-  const totalAnalyses = Math.max(Number(metrics.totalAnalyses || 0), 0);
+  const { metrics, logs, status, message, pipelineEvents, latestDecision, sseConnected, isLoading } = useDevopsData();
+  const totalAnalyses = Math.max(Number(metrics.totalAnalyses || 0), Number(metrics.totalLogs || 0), 1);
   const totalAlerts = Math.max(Number(metrics.alertCount || 0), 0);
   const healedIncidents = Math.min(Math.max(Number(metrics.autoHealingCount || 0), 0), totalAlerts);
 
-  const anomalyRate = totalAnalyses > 0
-    ? Math.round((Math.max(Number(metrics.anomalyCount || 0), 0) / totalAnalyses) * 100)
-    : 0;
+  const anomalyRate = Math.min(
+    Math.round((Math.max(Number(metrics.anomalyCount || 0), 0) / totalAnalyses) * 100),
+    100
+  );
   const healedCoverage = totalAlerts > 0 ? Math.round((healedIncidents / totalAlerts) * 100) : 0;
   const openIncidentRate = totalAlerts > 0 ? Math.max(100 - healedCoverage, 0) : 0;
 
@@ -31,6 +32,13 @@ export default function DashboardRoute() {
     { label: "Open incident rate", value: openIncidentRate },
   ];
 
+  const modelSync = status?.system?.modelSync;
+  const modelSource = modelSync?.source === "s3" ? "S3 synced model" : "Local model";
+  const modelKey = modelSync?.key || "not-configured";
+  const decisionSignals = latestDecision?.signals
+    ? `ML:${latestDecision.signals.ml ? "on" : "off"} | Rule:${latestDecision.signals.rule ? "on" : "off"}`
+    : "Waiting for prediction";
+
   return (
     <AppShell
       title="Autonomous Reliability Studio"
@@ -40,6 +48,21 @@ export default function DashboardRoute() {
       <section className="rounded-3xl border border-white/10 bg-gradient-to-r from-amber-500/15 via-orange-500/5 to-sky-500/10 px-4 py-4 shadow-panel">
         <p className="text-xs uppercase tracking-[0.2em] text-amber-200">System Snapshot</p>
         <p className="mt-1 text-sm text-slate-200">Live reliability posture, trend signals, and autonomous recovery context in one operational view.</p>
+
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1 text-emerald-200">
+            Detection: backend decision engine
+          </span>
+          <span className="rounded-full border border-sky-400/30 bg-sky-500/15 px-2.5 py-1 text-sky-100">
+            Model source: {modelSource}
+          </span>
+          <span className="rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-slate-200">
+            Model key: {modelKey}
+          </span>
+          <span className="rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-slate-300">
+            Signals: {decisionSignals}
+          </span>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
