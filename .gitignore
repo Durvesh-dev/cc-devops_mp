@@ -53,6 +53,9 @@ backend/data/*.jsonl
 # ML artifacts
 ml-model/model/*.pkl
 ml-model/models/*.pkl
+ml-model/*_dataset.csv
 
 # Generated docs
 docs/*.pdf
+docs/report_pages/
+/*.pdf
