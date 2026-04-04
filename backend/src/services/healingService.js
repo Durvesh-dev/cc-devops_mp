@@ -75,6 +75,8 @@ async function handleAnomaly(logRecord, prediction) {
   const healingPlan = buildHealingPlan(logRecord.service);
   const snsSeverity = normalizeSnsSeverity(logRecord, severity);
   const timestamp = new Date().toISOString();
+  const issueType = logRecord.issueType || "general-event";
+  const incidentId = `${Date.now()}-incident-${Math.floor(Math.random() * 10000)}`;
 
   // Use the required alert format: 🚨 [SEVERITY] anomaly detected in [SERVICE]: [LOG]
   const alertText = formatAnomalyAlert(severity, logRecord.service, logRecord.log);
@@ -105,10 +107,12 @@ async function handleAnomaly(logRecord, prediction) {
 
   const action = {
     id: `${Date.now()}-heal-${Math.floor(Math.random() * 10000)}`,
+    incidentId,
     action: healingPlan.action,
     reason: healingPlan.reason,
     message: healingPlan.message,
     service: logRecord.service,
+    issueType,
     severity,
     time: timestamp,
   };
@@ -117,9 +121,10 @@ async function handleAnomaly(logRecord, prediction) {
 
   const alert = {
     id: `${Date.now()}-alert-${Math.floor(Math.random() * 10000)}`,
+    incidentId,
     severity,
     service: logRecord.service,
-    issueType: logRecord.issueType || "general-event",
+    issueType,
     message: alertText,
     snsPayload,
     sns: snsResult,
@@ -128,11 +133,12 @@ async function handleAnomaly(logRecord, prediction) {
 
   const anomalyRecord = {
     id: `${Date.now()}-anomaly-${Math.floor(Math.random() * 10000)}`,
+    incidentId,
     logId: logRecord.id || `${Date.now()}-log`,
     service: logRecord.service,
     severity,
     confidence: prediction?.confidence ?? prediction?.anomaly_score ?? 0.5,
-    issueType: logRecord.issueType || "general-event",
+    issueType,
     timestamp,
   };
 

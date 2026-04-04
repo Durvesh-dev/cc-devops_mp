@@ -27,7 +27,7 @@ function buildLogRecord(logText, decision) {
     confidence: decision.confidence,
     anomaly: decision.anomaly,
     statusCode: decision.statusCode,
-    responseTimeMs: 0,
+    responseTimeMs: decision.responseTimeMs || 0,
     log: logText,
     timestamp: new Date().toISOString(),
     source: "file-watcher",

@@ -109,23 +109,27 @@ function classifyLog(logText) {
     issueType: meta.issueType,
     level: meta.level,
     statusCode: meta.statusCode,
+    responseTimeMs: meta.responseTimeMs || 0,
   };
 }
 
 /**
  * Build final autonomous decision from log text + ML output + rule fallback.
- * anomaly = ML OR rule-based
  */
 function buildDecision(logText, mlPrediction = null) {
   const classified = classifyLog(logText);
   const mlSignal = Boolean(mlPrediction?.is_anomaly || mlPrediction?.anomaly === 1);
   const ruleSignal = hasRuleBasedAnomaly(logText);
-  const anomaly = mlSignal || ruleSignal;
+
+  // SAFETY OVERRIDE: If the level is CRITICAL or ERROR, it's a "Proper" anomaly regardless of ML.
+  const isHighSeverity = classified.level === "CRITICAL" || classified.level === "ERROR";
+  const anomaly = mlSignal || isHighSeverity;
 
   const confidence = clamp01(
     Math.max(
       buildConfidence(mlSignal, ruleSignal, classified.level),
       toNumber(mlPrediction?.anomaly_score, 0),
+      isHighSeverity ? 0.98 : 0,
     ),
   );
 
@@ -139,9 +143,11 @@ function buildDecision(logText, mlPrediction = null) {
     suggestedActions: getSuggestedActions(classified.issueType, anomaly),
     level: classified.level,
     statusCode: classified.statusCode,
+    responseTimeMs: classified.responseTimeMs,
     signals: {
       ml: mlSignal,
       rule: ruleSignal,
+      safetyOverride: isHighSeverity,
     },
   };
 }

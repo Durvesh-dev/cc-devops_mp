@@ -58,6 +58,11 @@ function detectLevel(text) {
   return "INFO";
 }
 
+function detectLatency(text) {
+  const match = String(text || "").match(/latency=(\d+)ms/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
 function inferStatusCode(level, issueType) {
   if (issueType === "auth-failure") return 401;
   if (level === "CRITICAL" || level === "ERROR") return 500;
@@ -74,6 +79,7 @@ function inferLogMeta(rawText = "") {
     service: detectService(text),
     issueType,
     statusCode: inferStatusCode(level, issueType),
+    responseTimeMs: detectLatency(text),
   };
 }
 
