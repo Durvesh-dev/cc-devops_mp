@@ -83,7 +83,8 @@ function buildLogLine() {
   const message = pick(messagePool);
   const latency = resolveLatency(level);
 
-  return `${new Date().toISOString()} ${level} [${selectedService.serviceName}] ${message} latency=${latency}ms`;
+  // Keep raw logs closer to production style: no explicit LEVEL token in-line.
+  return `${new Date().toISOString()} [${selectedService.serviceName}] ${message} latency=${latency}ms`;
 }
 
 async function ensureLogFile(logFilePath) {

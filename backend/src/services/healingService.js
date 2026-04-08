@@ -88,23 +88,6 @@ async function handleAnomaly(logRecord, prediction) {
     timestamp,
   };
 
-  let snsResult = { skipped: true, reason: `SNS trigger skipped for ${snsSeverity}` };
-  if (shouldTriggerSns(snsSeverity)) {
-    snsResult = await publishSnsAlert(
-      JSON.stringify(snsPayload),
-      `AI DevOps ${snsSeverity} Alert`,
-    );
-  }
-
-  if (snsResult?.skipped || snsResult?.success === false) {
-    await fs.mkdir(path.dirname(LOCAL_ALERTS_LOG), { recursive: true });
-    await fs.appendFile(
-      LOCAL_ALERTS_LOG,
-      `${new Date().toISOString()} ${alertText}${snsResult?.reason ? ` | reason=${snsResult.reason}` : ""}\n`,
-      "utf8",
-    );
-  }
-
   const action = {
     id: `${Date.now()}-heal-${Math.floor(Math.random() * 10000)}`,
     incidentId,
@@ -127,7 +110,7 @@ async function handleAnomaly(logRecord, prediction) {
     issueType,
     message: alertText,
     snsPayload,
-    sns: snsResult,
+    sns: { pending: true, reason: "notification-processing" },
     time: timestamp,
   };
 
@@ -142,11 +125,39 @@ async function handleAnomaly(logRecord, prediction) {
     timestamp,
   };
 
-  await appendAnomaly(anomalyRecord);
-  await appendAlert(alert);
-  await appendAutoHealing(action);
-
   pushCapped(state.recentAlerts, alert, 20);
+
+  // Don't block UI updates on external notification latency.
+  const persistAndNotify = async () => {
+    try {
+      let snsResult = { skipped: true, reason: `SNS trigger skipped for ${snsSeverity}` };
+      if (shouldTriggerSns(snsSeverity)) {
+        snsResult = await publishSnsAlert(
+          JSON.stringify(snsPayload),
+          `AI DevOps ${snsSeverity} Alert`,
+        );
+      }
+
+      alert.sns = snsResult;
+
+      if (snsResult?.skipped || snsResult?.success === false) {
+        await fs.mkdir(path.dirname(LOCAL_ALERTS_LOG), { recursive: true });
+        await fs.appendFile(
+          LOCAL_ALERTS_LOG,
+          `${new Date().toISOString()} ${alertText}${snsResult?.reason ? ` | reason=${snsResult.reason}` : ""}\n`,
+          "utf8",
+        );
+      }
+
+      await appendAnomaly(anomalyRecord);
+      await appendAlert(alert);
+      await appendAutoHealing(action);
+    } catch (error) {
+      console.error(`[HealingService] Persist/notify failed: ${error.message}`);
+    }
+  };
+
+  void persistAndNotify();
 
   return {
     alert,
