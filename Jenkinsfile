@@ -50,13 +50,23 @@ pipeline {
       steps {
         script {
           if (isUnix()) {
-            sh 'docker version'
-            sh 'docker build -f backend/Dockerfile -t cc-devops-backend:local .'
-            sh 'docker build -f frontend/Dockerfile -t cc-devops-frontend:local .'
+            def dockerAvailable = (sh(script: 'command -v docker >/dev/null 2>&1', returnStatus: true) == 0)
+            if (dockerAvailable) {
+              sh 'docker version'
+              sh 'docker build -f backend/Dockerfile -t cc-devops-backend:local .'
+              sh 'docker build -f frontend/Dockerfile -t cc-devops-frontend:local .'
+            } else {
+              echo 'Docker CLI not found on Jenkins agent; skipping Docker build stage.'
+            }
           } else {
-            bat 'docker version'
-            bat 'docker build -f backend/Dockerfile -t cc-devops-backend:local .'
-            bat 'docker build -f frontend/Dockerfile -t cc-devops-frontend:local .'
+            def dockerAvailable = (bat(script: '@where docker >NUL 2>&1', returnStatus: true) == 0)
+            if (dockerAvailable) {
+              bat 'docker version'
+              bat 'docker build -f backend/Dockerfile -t cc-devops-backend:local .'
+              bat 'docker build -f frontend/Dockerfile -t cc-devops-frontend:local .'
+            } else {
+              echo 'Docker CLI not found on Jenkins agent; skipping Docker build stage.'
+            }
           }
         }
       }
